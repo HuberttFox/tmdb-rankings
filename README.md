@@ -1,3 +1,5 @@
+> [中文版](README.zh.md)
+
 # TMDB Rankings
 
 Scrape [TMDB](https://www.themoviedb.org) top-rated movie rankings and export structured data to CSV.
