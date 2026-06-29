@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# IDE
+.idea/
+
+# Data
+csv_data/
+test.csv
+
+# OS
+.DS_Store
+Thumbs.db
