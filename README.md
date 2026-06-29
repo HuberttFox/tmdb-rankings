@@ -6,13 +6,15 @@ Scrape [TMDB](https://www.themoviedb.org) top-rated movie rankings and export st
 
 ## Features
 
-- Scrapes TMDB's top-rated movie list page
+- Scrapes TMDB's top-rated movie list across multiple pages
 - Extracts detailed metadata for each movie:
   - Name, year, publish date
   - Score (audience rating percentage)
   - Description, tagline/slogan
   - Tags/categories, runtime
   - Language, director, novelist
+- Pagination support (configurable page count)
+- Error handling with per-page progress tracking
 - Outputs clean CSV with all fields
 
 ## Requirements
@@ -26,7 +28,23 @@ Scrape [TMDB](https://www.themoviedb.org) top-rated movie rankings and export st
 git clone <repo-url>
 cd tmdb-rankings
 uv sync
+cp .env.example .env   # Optional: customize configuration
 ```
+
+## Configuration
+
+All configurable options are in `.env` (copy from `.env.example`):
+
+| Variable | Default | Description |
+|---|---|---|
+| `TMDB_MAX_PAGES` | `5` | Number of pages to crawl |
+| `REQUEST_TIMEOUT` | `60` | HTTP request timeout (seconds) |
+| `CSV_OUTPUT` | `csv_data/movie_list.csv` | Output file path |
+| `WATCH_REGION` | `KR` | ISO-3166 region code for filtering |
+| `MIN_VOTE_COUNT` | `300` | Minimum vote count threshold |
+| `SORT_BY` | `vote_average.desc` | Sort order |
+| `ORIGINAL_LANGUAGE` | *(empty)* | Filter by original language |
+| `RUNTIME_MIN` / `RUNTIME_MAX` | `0` / `400` | Runtime range (minutes) |
 
 ## Usage
 
@@ -34,7 +52,7 @@ uv sync
 uv run main.py
 ```
 
-Output will be saved to `csv_data/movie_list.csv`.
+Output will be saved to `csv_data/movie_list.csv` (or your configured path).
 
 ### CSV Fields
 
@@ -57,10 +75,18 @@ Output will be saved to `csv_data/movie_list.csv`.
 ```
 tmdb-rankings/
 ├── main.py          # Entry point
+├── config.py        # Configuration loader
 ├── pyproject.toml   # Project config & dependencies
+├── .env.example     # Example environment config
 ├── csv_data/        # Output directory (gitignored)
 └── .gitignore
 ```
+
+## Notes
+
+- XPath selectors depend on TMDB's current DOM structure and may break after site updates.
+- Page 1 uses the `/movie/top-rated` endpoint; subsequent pages use the `/discover/movie/items` API.
+- The `release_date.lte` filter is automatically set to today's date.
 
 ## License
 
