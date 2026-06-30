@@ -1,13 +1,31 @@
 import requests
 import csv
 from lxml import html
-
+import re
 import config
 
 TMDB_BASE_URL = 'https://www.themoviedb.org'
 TMDB_TOP_URL_1 = 'https://www.themoviedb.org/movie/top-rated'
 TMDB_TOP_URL_2 = 'https://www.themoviedb.org/discover/movie/items'
 
+
+def get_movie_year(movie_years):
+    movie_year = movie_years[0].strip() if movie_years else ''
+    return movie_year.replace("(", "").replace(")", "")
+
+
+def get_movie_publish_data(movie_publish_dates):
+    movie_publish_data = movie_publish_dates[0].strip() if movie_publish_dates else ''
+    return re.search(r"\d{4}-\d{2}-\d{2}", movie_publish_data).group()
+
+
+def get_movie_cost_time(movie_cost_times):
+    movie_cost_time = movie_cost_times[0].strip() if movie_cost_times else ''
+    h_res = re.search(r"(\d+)h", movie_cost_time)
+    m_res = re.search(r"(\d+)m", movie_cost_time)
+    h = int(h_res.group(1)) if h_res else 0
+    m = int(m_res.group(1)) if m_res else 0
+    return h * 60 + m
 
 def get_movie_info(movie_info_url):
     """获取电影详细信息"""
@@ -19,28 +37,27 @@ def get_movie_info(movie_info_url):
         return None
 
     movie_doc = html.fromstring(response.text)
-
     movie_names = movie_doc.xpath("/html/body/div[1]/main/section/div[2]/div/div/section/div[2]/section/div[1]/h2/a/text()")
     movie_descriptions = movie_doc.xpath("/html/body/div[1]/main/section/div[2]/div/div/section/div[2]/section/div[3]/div/p/text()")
     movie_scores = movie_doc.xpath("/html/body/div[1]/main/section/div[2]/div/div/section/div[2]/section/div[2]/div/div/div[1]/div/div[1]/div/div/@data-percent")
     movie_years = movie_doc.xpath("/html/body/div[1]/main/section/div[2]/div/div/section/div[2]/section/div[1]/h2/span/text()")
-    movie_publish_dates = movie_doc.xpath("/html/body/div[1]/main/section/div[2]/div/div/section/div[2]/section/div[1]/div/span[2]/text()")
-    movie_tags = movie_doc.xpath("/html/body/div[1]/main/section/div[2]/div/div/section/div[2]/section/div[1]/div/span[3]/a/text()")
-    movie_cost_times = movie_doc.xpath("/html/body/div[1]/main/section/div[2]/div/div/section/div[2]/section/div[1]/div/span[4]/text()")
-    movie_languages = movie_doc.xpath("/html/body/div[1]/main/section/div[3]/div/div/div[2]/div/section/div[1]/div/section[1]/p[2]/text()")
+    movie_publish_dates = movie_doc.xpath("/html/body/div[1]/main/section/div[2]/div/div/section/div[2]/section/div[1]/div/span[@class='release']/text()")
+    movie_tags = movie_doc.xpath("/html/body/div[1]/main/section/div[2]/div/div/section/div[2]/section/div[1]/div/span[@class='genres']/a/text()")
+    movie_cost_times = movie_doc.xpath("/html/body/div[1]/main/section/div[2]/div/div/section/div[2]/section/div[1]/div/span[@class='runtime']/text()")
+    movie_languages = movie_doc.xpath("/html/body/div[1]/main/section/div[3]/div/div/div[2]/div/section/div[1]/div/section[1]/p[3]/text()")
     movie_directors = movie_doc.xpath("/html/body/div[1]/main/section/div[2]/div/div/section/div[2]/section/div[3]/ol/li[1]/p[1]/a/text()")
     movie_novels = movie_doc.xpath("/html/body/div[1]/main/section/div[2]/div/div/section/div[2]/section/div[3]/ol/li[2]/p[1]/a/text()")
     movie_slogans = movie_doc.xpath("/html/body/div[1]/main/section/div[2]/div/div/section/div[2]/section/div[3]/h3[1]/text()")
 
     movie_info = {
         "name": movie_names[0].strip() if movie_names else '',
-        "year": movie_years[0].strip() if movie_years else '',
-        "publish_date": movie_publish_dates[0].strip() if movie_publish_dates else '',
+        "year": get_movie_year(movie_years),
+        "publish_date": get_movie_publish_data(movie_publish_dates),
         "score": movie_scores[0].strip() if movie_scores else '',
         "description": movie_descriptions[0].strip() if movie_descriptions else '',
         "slogan": movie_slogans[0].strip() if movie_slogans else '',
         "tags": ",".join(movie_tags) if movie_tags else '',
-        "cost_time": movie_cost_times[0].strip() if movie_cost_times else '',
+        "cost_time": get_movie_cost_time(movie_cost_times),
         "language": movie_languages[0].strip() if movie_languages else '',
         "director": ",".join(movie_directors) if movie_directors else '',
         "novel": ",".join(movie_novels) if movie_novels else ''
