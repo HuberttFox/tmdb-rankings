@@ -14,8 +14,6 @@ def get_movie_year(movie_years):
     """Extract 4-digit year from TMDB's parenthesized year string."""
     raw = movie_years[0].strip() if movie_years else ''
     cleaned = raw.strip("()")
-    if raw and not cleaned:
-        print(f"    [CLEAN] 年份: \"{raw}\" -> \"{cleaned}\"")
     return cleaned
 
 
@@ -24,19 +22,15 @@ def get_movie_publish_date(movie_publish_dates):
     raw = movie_publish_dates[0].strip() if movie_publish_dates else ''
     match = re.search(r"\d{4}-\d{2}-\d{2}", raw)
     cleaned = match.group() if match else ''
-    if raw and raw != cleaned:
-        print(f"    [CLEAN] 日期: \"{raw}\" -> \"{cleaned}\"")
     return cleaned
 
 
 def get_movie_cost_time(movie_cost_times):
     """Convert TMDB's runtime string (e.g. \"1h 42m\") to total minutes."""
     raw = movie_cost_times[0].strip() if movie_cost_times else ''
-    h = int(m) if (m := re.search(r"(\d+)h", raw)) else 0
-    m = int(m) if (m := re.search(r"(\d+)m", raw)) else 0
+    h = int(h.group(1)) if (h := re.search(r"(\d+)h", raw)) else 0
+    m = int(m.group(1)) if (m := re.search(r"(\d+)m", raw)) else 0
     cleaned = h * 60 + m
-    if raw and cleaned:
-        print(f"    [CLEAN] 片长: \"{raw}\" -> {cleaned}min")
     return cleaned
 
 
