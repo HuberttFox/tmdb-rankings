@@ -10,30 +10,29 @@ TMDB_TOP_URL_2 = 'https://www.themoviedb.org/discover/movie/items'
 
 
 def get_movie_year(movie_years):
-    movie_year = movie_years[0].strip() if movie_years else ''
-    return movie_year.replace("(", "").replace(")", "")
+    raw = movie_years[0].strip() if movie_years else ''
+    return raw.strip("()")
 
 
 def get_movie_publish_data(movie_publish_dates):
-    movie_publish_data = movie_publish_dates[0].strip() if movie_publish_dates else ''
-    return re.search(r"\d{4}-\d{2}-\d{2}", movie_publish_data).group()
+    raw = movie_publish_dates[0].strip() if movie_publish_dates else ''
+    match = re.search(r"\d{4}-\d{2}-\d{2}", raw)
+    return match.group() if match else ''
 
 
 def get_movie_cost_time(movie_cost_times):
-    movie_cost_time = movie_cost_times[0].strip() if movie_cost_times else ''
-    h_res = re.search(r"(\d+)h", movie_cost_time)
-    m_res = re.search(r"(\d+)m", movie_cost_time)
-    h = int(h_res.group(1)) if h_res else 0
-    m = int(m_res.group(1)) if m_res else 0
+    raw = movie_cost_times[0].strip() if movie_cost_times else ''
+    h = int(m) if (m := re.search(r"(\d+)h", raw)) else 0
+    m = int(m) if (m := re.search(r"(\d+)m", raw)) else 0
     return h * 60 + m
 
+
 def get_movie_info(movie_info_url):
-    """获取电影详细信息"""
-    print(f"  [INFO] 获取: {movie_info_url}")
+    print(f"  [DL] {movie_info_url}")
     response = requests.get(movie_info_url, timeout=config.TIMEOUT)
 
     if response.status_code != 200:
-        print(f"  [ERROR] 请求失败，状态码: {response.status_code}")
+        print(f"  [ERR] HTTP {response.status_code}")
         return None
 
     movie_doc = html.fromstring(response.text)
@@ -49,7 +48,7 @@ def get_movie_info(movie_info_url):
     movie_novels = movie_doc.xpath("/html/body/div[1]/main/section/div[2]/div/div/section/div[2]/section/div[3]/ol/li[2]/p[1]/a/text()")
     movie_slogans = movie_doc.xpath("/html/body/div[1]/main/section/div[2]/div/div/section/div[2]/section/div[3]/h3[1]/text()")
 
-    movie_info = {
+    info = {
         "name": movie_names[0].strip() if movie_names else '',
         "year": get_movie_year(movie_years),
         "publish_date": get_movie_publish_data(movie_publish_dates),
@@ -63,16 +62,14 @@ def get_movie_info(movie_info_url):
         "novel": ",".join(movie_novels) if movie_novels else ''
     }
 
-    name = movie_info['name'][:30] + '...' if len(movie_info['name']) > 30 else movie_info['name']
-    print(f"  [OK] {name} ({movie_info['year']}) - 评分: {movie_info['score']}%")
-    return movie_info
+    name = info['name'][:30] + '...' if len(info['name']) > 30 else info['name']
+    print(f"  [OK] {name} ({info['year']}) {info['score']}%")
+    return info
 
 
 def save_all_movies(all_movies):
-    """保存所有电影数据到CSV文件"""
     print(f"\n{'='*60}")
-    print(f"[SAVE] 保存数据到: {config.OUTPUT_FILE}")
-    print(f"[SAVE] 记录数: {len(all_movies)} 条")
+    print(f"[SAVE] {config.OUTPUT_FILE} ({len(all_movies)} 条)")
 
     with open(config.OUTPUT_FILE, 'w', encoding='utf-8', newline='') as csvfile:
         fieldnames = ['name', 'year', 'publish_date', 'score', 'description',
@@ -81,31 +78,27 @@ def save_all_movies(all_movies):
         writer.writeheader()
         writer.writerows(all_movies)
 
-    print(f"[SUCCESS] ✓ 已保存 {len(all_movies)} 部电影数据")
+    print(f"[DONE] ✓ 已保存 {len(all_movies)} 部电影数据")
     print(f"{'='*60}\n")
 
 
 def main():
-    """主函数：爬取TMDB Top Rated电影并保存到CSV"""
     all_movies = []
     total_pages = config.MAX_PAGES
 
-    print("\n" + "="*60)
-    print("TMDB Top Rated 电影爬虫")
-    print(f"计划爬取页数: {total_pages} 页")
-    print("="*60)
+    print(f"\n{'='*60}")
+    print(f"TMDB Top Rated  页数: {total_pages}")
+    print(f"{'='*60}")
 
     for page_num in range(1, total_pages + 1):
         print(f"\n{'─'*60}")
-        print(f"[PAGE {page_num}/{total_pages}] 正在处理第 {page_num} 页...")
+        print(f"第 {page_num}/{total_pages} 页")
         print(f"{'─'*60}")
 
         try:
             if page_num == 1:
-                print(f"[HTTP] GET {TMDB_TOP_URL_1}")
                 response = requests.get(TMDB_TOP_URL_1, timeout=config.TIMEOUT)
             else:
-                print(f"[HTTP] POST {TMDB_TOP_URL_2} (page={page_num})")
                 response = requests.post(
                     TMDB_TOP_URL_2,
                     data=config.build_pagination_data(page_num),
@@ -113,13 +106,11 @@ def main():
                 )
 
             if response.status_code != 200:
-                print(f"[ERROR] 页面请求失败，状态码: {response.status_code}")
+                print(f"[ERR] HTTP {response.status_code}")
                 continue
 
-            print(f"[HTTP] 响应状态: {response.status_code} OK")
-
         except Exception as e:
-            print(f"[ERROR] 网络请求异常: {str(e)}")
+            print(f"[ERR] {e}")
             continue
 
         document = html.fromstring(response.text)
@@ -131,36 +122,33 @@ def main():
         movie_list = document.xpath(xpath_expr)
 
         if not movie_list:
-            print(f"[WARNING] 第 {page_num} 页未找到电影列表，可能已到达最后一页")
+            print(f"[WARN] 第 {page_num} 页无数据，已结束")
             break
 
-        print(f"[FOUND] 发现 {len(movie_list)} 部电影")
+        print(f"[PAGE] {len(movie_list)} 部")
 
-        total = len(movie_list)
         success_count = 0
         for index, movie in enumerate(movie_list, 1):
-            print(f"  [{index}/{total}]", end=" ")
+            print(f"  [{index}/{len(movie_list)}]", end=" ")
             movie_urls = movie.xpath("./div/div/a/@href")
             if movie_urls:
-                movie_info_url = TMDB_BASE_URL + movie_urls[0]
-                movie_info = get_movie_info(movie_info_url)
-                if movie_info:
-                    all_movies.append(movie_info)
+                info = get_movie_info(TMDB_BASE_URL + movie_urls[0])
+                if info:
+                    all_movies.append(info)
                     success_count += 1
             else:
-                print("[WARN] 无法提取链接")
+                print("[WARN] 无链接")
 
-        print(f"\n[SUMMARY] 第 {page_num} 页完成: 成功 {success_count}/{total} 部")
+        print(f"\n[PG-OK] 第 {page_num} 页: {success_count}/{len(movie_list)}")
 
     print(f"\n{'='*60}")
-    print("爬取任务完成!")
-    print(f"总计获取: {len(all_movies)} 部电影")
+    print(f"总计: {len(all_movies)} 部")
     print(f"{'='*60}")
 
     if all_movies:
         save_all_movies(all_movies)
     else:
-        print("[WARNING] 没有获取到任何数据，跳过保存")
+        print("[WARN] 无数据")
 
 
 if __name__ == '__main__':
