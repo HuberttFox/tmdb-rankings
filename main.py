@@ -10,21 +10,33 @@ TMDB_TOP_URL_2 = 'https://www.themoviedb.org/discover/movie/items'
 
 
 def get_movie_year(movie_years):
+    """Extract 4-digit year from TMDB's parenthesized year string."""
     raw = movie_years[0].strip() if movie_years else ''
-    return raw.strip("()")
+    cleaned = raw.strip("()")
+    if raw and not cleaned:
+        print(f"    [CLEAN] 年份: \"{raw}\" -> \"{cleaned}\"")
+    return cleaned
 
 
-def get_movie_publish_data(movie_publish_dates):
+def get_movie_publish_date(movie_publish_dates):
+    """Extract ISO date (YYYY-MM-DD) from TMDB's release date string."""
     raw = movie_publish_dates[0].strip() if movie_publish_dates else ''
     match = re.search(r"\d{4}-\d{2}-\d{2}", raw)
-    return match.group() if match else ''
+    cleaned = match.group() if match else ''
+    if raw and raw != cleaned:
+        print(f"    [CLEAN] 日期: \"{raw}\" -> \"{cleaned}\"")
+    return cleaned
 
 
 def get_movie_cost_time(movie_cost_times):
+    """Convert TMDB's runtime string (e.g. \"1h 42m\") to total minutes."""
     raw = movie_cost_times[0].strip() if movie_cost_times else ''
     h = int(m) if (m := re.search(r"(\d+)h", raw)) else 0
     m = int(m) if (m := re.search(r"(\d+)m", raw)) else 0
-    return h * 60 + m
+    cleaned = h * 60 + m
+    if raw and cleaned:
+        print(f"    [CLEAN] 片长: \"{raw}\" -> {cleaned}min")
+    return cleaned
 
 
 def get_movie_info(movie_info_url):
@@ -51,7 +63,7 @@ def get_movie_info(movie_info_url):
     info = {
         "name": movie_names[0].strip() if movie_names else '',
         "year": get_movie_year(movie_years),
-        "publish_date": get_movie_publish_data(movie_publish_dates),
+        "publish_date": get_movie_publish_date(movie_publish_dates),
         "score": movie_scores[0].strip() if movie_scores else '',
         "description": movie_descriptions[0].strip() if movie_descriptions else '',
         "slogan": movie_slogans[0].strip() if movie_slogans else '',
