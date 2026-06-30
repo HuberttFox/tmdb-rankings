@@ -2,6 +2,7 @@ import requests
 import csv
 from lxml import html
 import re
+
 import config
 
 TMDB_BASE_URL = 'https://www.themoviedb.org'
@@ -40,6 +41,7 @@ def get_movie_cost_time(movie_cost_times):
 
 
 def get_movie_info(movie_info_url):
+    """Fetch a movie detail page and return a dict of parsed fields."""
     print(f"  [DL] {movie_info_url}")
     response = requests.get(movie_info_url, timeout=config.TIMEOUT)
 
@@ -48,6 +50,7 @@ def get_movie_info(movie_info_url):
         return None
 
     movie_doc = html.fromstring(response.text)
+
     movie_names = movie_doc.xpath("/html/body/div[1]/main/section/div[2]/div/div/section/div[2]/section/div[1]/h2/a/text()")
     movie_descriptions = movie_doc.xpath("/html/body/div[1]/main/section/div[2]/div/div/section/div[2]/section/div[3]/div/p/text()")
     movie_scores = movie_doc.xpath("/html/body/div[1]/main/section/div[2]/div/div/section/div[2]/section/div[2]/div/div/div[1]/div/div[1]/div/div/@data-percent")
@@ -80,6 +83,7 @@ def get_movie_info(movie_info_url):
 
 
 def save_all_movies(all_movies):
+    """Write the movie list to CSV."""
     print(f"\n{'='*60}")
     print(f"[SAVE] {config.OUTPUT_FILE} ({len(all_movies)} 条)")
 
@@ -95,6 +99,7 @@ def save_all_movies(all_movies):
 
 
 def main():
+    """Entry point: crawl TMDB top-rated pages, then persist results to CSV."""
     all_movies = []
     total_pages = config.MAX_PAGES
 
